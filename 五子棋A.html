@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="utf-8" />
+        <title>郭胜学习项目-五子棋游戏-小小AI</title>
+        <style>
+            canvas {
+                display: block;
+                margin: 50px auto;
+                box-shadow: -2px -2px 2px #efefef, 5px 5px 5px #b9b9b9;
+            }
+        </style>
+    </head>
+
+    <body>
+        <canvas id="guoshengcanvas" width="450px" height="450px"></canvas>
+    </body>
+
+</html>
+<script>
+    var chessBoard = [],
+        me = true,
+        over = false,
+        wins = [],
+        mywin = [],
+        computerwin = [];
+    /*
+     * 初始化赢法数组
+     * 郭胜
+     * 三维数组
+     */
+    for(var i = 0; i < 15; i++) {
+        wins[i] = [];
+        for(var j = 0; j < 15; j++) {
+            wins[i][j] = [];
+        }
+    }
+
+    /*
+     * 赢法种类：x轴向左，y轴向下，所有的赢法，即"|"放下
+     * 郭胜
+     */
+    var count = 0;//赢法总数
+    for(var i = 0; i < 15; i++) {
+        for(var j = 0; j < 11; j++) {
+            for(var k = 0; k < 5; k++) {
+                wins[i][j + k][count] = true;
+            }
+            count++;
+        }
+    }
+
+    /*
+     * 赢法种类：x轴向下，y轴向左，所有的赢法，即"——"方向
+     * 郭胜
+     */
+    for(var i = 0; i < 15; i++) {
+        for(var j = 0; j < 11; j++) {
+            for(var k = 0; k < 5; k++) {
+                wins[j + k][i][count] = true;
+            }
+            count++;
+        }
+    }
+
+    /*
+     * 赢法种类："\"方向的所有赢法
+     * 郭胜
+     */
+    for(var i = 0; i < 11; i++) {
+        for(var j = 0; j < 11; j++) {
+            for(var k = 0; k < 5; k++) {
+                wins[i + k][j + k][count] = true;
+            }
+            count++;
+        }
+    }
+
+    /*
+     * 赢法种类："/"方向的所有赢法
+     * 郭胜
+     */
+    for(var i = 0; i < 11; i++) {
+        for(var j = 14; j > 3; j--) {
+            for(var k = 0; k < 5; k++) {
+                wins[i + k][j - k][count] = true;
+            }
+            count++;
+        }
+    }
+
+    /*
+     * 初始化画板
+     * 郭胜
+     */
+    for(var i = 0; i < 15; i++) {
+        chessBoard[i] = [];
+        for(var j = 0; j < 15; j++) {
+            chessBoard[i][j] = 0;
+        }
+    }
+
+    /*
+     * 初始化我方和计算机方
+     * 郭胜
+     */
+    for(var i = 0; i < count; i++) {
+        mywin[i] = 0;
+        computerwin[i] = 0;
+    }
+
+    var guoshengcanvas = document.getElementById("guoshengcanvas");
+    var context = guoshengcanvas.getContext("2d");
+    //设置或返回用于笔触的颜色、渐变或模式
+    context.strokeStyle = "#bfbfbf";
+
+    /*
+     * 画棋盘
+     * 郭胜
+     */
+    window.onload = function() {
+        for(var i = 0; i < 15; i++) {
+            //把路径移动到画布中的指定点，不创建线条
+            context.moveTo(15 + i * 30, 15);
+            //添加一个新点，然后在画布中创建从该点到最后指定点的线条
+            context.lineTo(15 + i * 30, 435);
+            context.moveTo(15, 15 + i * 30);
+            context.lineTo(435, 15 + i * 30);
+            //     绘制已定义的路径
+            context.stroke();
+        }
+    }
+
+    /*
+     * 走琪
+     * 郭胜
+     */
+    var onestep = function(i, j, me) {
+        context.beginPath();
+        //画圆
+        context.arc(15 + i * 30, 15 + j * 30, 13, 0, 2 * Math.PI);
+        context.closePath();
+        //创建放射状/环形的渐变（用在画布内容上）
+        var grandient = context.createRadialGradient(15 + i * 30 + 2, 15 + j * 30 - 2, 13, 15 + i * 30 + 2, 15 + j * 30 - 2, 0);
+        if(me) {//判断是我走琪还是计算机，true是我，false是计算机
+            grandient.addColorStop(0, "#0A0A0A");
+            grandient.addColorStop(1, "#636766");
+        } else {
+            grandient.addColorStop(0, "#D1D1D1");
+            grandient.addColorStop(1, "#f9f9f9");
+        }
+        context.fillStyle = grandient;
+        context.fill();
+    }
+
+    guoshengcanvas.onclick = function(e) {
+        if(over) {//如果已经结束，停止
+            return;
+        }
+        if(!me) {//如果不是我走琪，停止
+            return;
+        }
+
+        var x = e.offsetX;//画布的x轴像素
+        var y = e.offsetY;//画布的y轴像素
+        var i = Math.floor(x / 30);//游戏的x轴坐标
+        var j = Math.floor(y / 30);//游戏的y轴坐标
+        if(chessBoard[i][j] == 0) {//如果该坐标没有棋子
+            onestep(i, j, me);
+            chessBoard[i][j] = 1;
+            for(var k = 0; k < count; k++) {
+                if(wins[i][j][k]) {
+                    mywin[k]++;//我在count这个赢法中已经占了几个子了。
+                    computerwin[k] = 8;//我已经占了，计算机在这个赢法上就没有了，给设置为8
+                    if(mywin[k] == 5) {//如果这个赢法中我已经占了五个，那么我就赢了。
+                        window.alert("臭小子，你赢了……");
+                        over = true;
+                    }
+                }
+            }
+        }
+
+        if(!over) {//游戏尚未结束
+            me = !me;//换计算机走琪
+            computerai();//计算机走琪
+        }
+    }
+
+    var computerai = function() {
+        var myscore = [],
+            computerscore = [];
+        var max = 0,
+            uu = 0,
+            vv = 0;
+        //初始化二维数组
+        for(var i = 0; i < 15; i++) {
+            myscore[i] = [];
+            computerscore[i] = [];
+            for(var j = 0; j < 15; j++) {
+                myscore[i][j] = 0;
+                computerscore[i][j] = 0;
+            }
+        }
+
+        for(var i = 0; i < 15; i++) {//从0,0到14,14遍历，选择最合适的位置
+            for(var j = 0; j < 15; j++) {
+                if(chessBoard[i][j] == 0) {
+                    for(var k = 0; k < count; k++) {
+                        if(wins[i][j][k]) {//判断，并给我在这个位置上的所有赢法赋值分数，在赢法中占的位置越多，分数越高
+                            if(mywin[k] == 1) {
+                                myscore[i][j] += 200;
+                            } else if(mywin[k] == 2) {
+                                myscore[i][j] += 400;
+                            } else if(mywin[k] == 3) {
+                                myscore[i][j] += 2000;
+                            } else if(mywin[k] == 4) {
+                                myscore[i][j] += 10000;
+                            }
+
+                            if(computerwin[k] == 1) {//判断，计算机在这个位置上的所有赢法赋值分数，在赢法中占的位置越多，分数越高
+                                computerscore[i][j] += 220;
+                            } else if(computerwin[k] == 2) {
+                                computerscore[i][j] += 420;
+                            } else if(computerwin[k] == 3) {
+                                computerscore[i][j] += 2100;
+                            } else if(computerwin[k] == 4) {
+                                computerscore[i][j] += 20000;
+                            }
+                        }
+                    }
+                    /*
+                     * 比较出我的权重值和计算机的权重值，哪一个最大的位置
+                     */
+                    if(myscore[i][j]>max){
+                        max = myscore[i][j];
+                        uu = i;
+                        vv = j;
+                    }else if(myscore[i][j]==max){
+                        if(computerscore[i][j]>computerscore[uu][vv]){
+                            uu = i;
+                            vv = j;
+                        }
+                    }
+                    
+                    if(computerscore[i][j] > max){
+                        max = computerscore[i][j];
+                        uu = i;
+                        vv = j;
+                    }else if(computerscore[i][j] == max){
+                        if(myscore[i][j] > myscore[uu][vv]){
+                            uu = i;
+                            vv = j;
+                        }
+                    }
+                }
+            }
+        }
+        onestep(uu,vv,false);
+        chessBoard[uu][vv] = 2;
+        for(var k=0;k<count;k++){
+            if(wins[uu][vv][k]){
+                computerwin[k] ++;
+                mywin[k] = 8;//在这个赢法上，我已经不可能赢了
+                if(computerwin[k] == 5){
+                    window.alert("小崽子，一点用都没有，计算机都玩不过！");
+                    over = true;
+                }
+            }
+        }
+        if(!over){
+            me = !me;
+        }
+    }
+</script>
